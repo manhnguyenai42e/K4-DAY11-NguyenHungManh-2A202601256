@@ -6,6 +6,35 @@ Làm sao để ứng dụng agent an toàn hơn?
 
 ---
 
+## Thông tin sinh viên
+
+| Thông tin | Giá trị |
+|-----------|---------|
+| Họ tên | Nguyễn Hùng Mạnh |
+| MSSV | `2A202601256` |
+| Framework | Google ADK (plugins) + pure-Python pipeline wrapper |
+
+## Cách chạy
+
+```powershell
+Copy-Item .env.example .env   # điền GOOGLE_API_KEY
+pip install -r requirements.txt
+
+# Hạng mục A — chạy pipeline phòng thủ (Test 1-4) + ghi outputs/
+python -c "from dotenv import load_dotenv; load_dotenv(); import sys; sys.path.insert(0,'src'); import asyncio; from assignment.pipeline import DefensePipeline, run_assignment_suite; asyncio.run(run_assignment_suite(DefensePipeline(), '2A202601256'))"
+
+# Hạng mục B — tấn công unsafe + guards + AI red team
+cd src
+python main.py --part 1
+
+# Kiểm tra
+pytest tests/smoke -q
+pytest tests/public -q
+python scripts/grade.py --submission-dir . --out outputs/grade_report.json
+```
+
+---
+
 ## Hai hạng mục cần làm
 
 | Hạng mục | Tỷ lệ | Bạn làm gì |

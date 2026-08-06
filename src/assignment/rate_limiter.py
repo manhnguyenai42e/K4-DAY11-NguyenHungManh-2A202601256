@@ -30,20 +30,38 @@ class RateLimitPlugin(base_plugin.BasePlugin):
             parts=[types.Part.from_text(text=message)],
         )
 
-    async def on_user_message_callback(self, *, invocation_context, user_message):
-        """Return Content to block, or None to allow."""
-        self.total_count += 1
-        user_id = getattr(invocation_context, "user_id", None) or "anonymous"
+    def check_request(self, user_id: str) -> tuple[bool, str | None]:
+        """Kiểm tra sliding-window (đồng bộ, tái sử dụng bởi pipeline).
+
+        Trả về (blocked: bool, wait_message: str|None).
+        """
         now = time.time()
         window = self.user_windows[user_id]
 
-        # TODO: Implement sliding window:
-        # 1. Pop timestamps older than (now - window_seconds) from the left
-        # 2. If len(window) >= max_requests:
-        #       wait = window_seconds - (now - window[0])
-        #       self.blocked_count += 1
-        #       return self._block_response(
-        #           f"Rate limit exceeded. Try again in {wait:.0f}s."
-        #       )
-        # 3. Else: append now, return None
-        raise NotImplementedError("Implement RateLimitPlugin.on_user_message_callback")
+        # Pop các timestamp đã cũ hơn cửa sổ
+        while window and now - window[0] >= self.window_seconds:
+            window.popleft()
+
+        # Vượt giới hạn -> chặn
+        if len(window) >= self.max_requests:
+            self.blocked_count += 1
+            wait = self.window_seconds - (now - window[0])
+            return True, f"Rate limit exceeded. Try again in {wait:.0f}s."
+
+        # Cho qua
+        window.append(now)
+        return False, None
+
+    async def on_user_message_callback(self, *, invocation_context, user_message):
+        """Return Content to block, or None to allow.
+
+        Sliding-window theo từng user — uỷ quyền cho check_request để
+        pipeline (pure-python) và ADK dùng chung một logic.
+        """
+        self.total_count += 1
+        user_id = getattr(invocation_context, "user_id", None) or "anonymous"
+
+        blocked, wait_msg = self.check_request(user_id)
+        if blocked:
+            return self._block_response(wait_msg)
+        return None

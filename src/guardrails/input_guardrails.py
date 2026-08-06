@@ -31,6 +31,10 @@ from core.config import ALLOWED_TOPICS, BLOCKED_TOPICS
 def detect_injection(user_input: str) -> bool:
     """Detect prompt injection patterns in user input.
 
+    Cần thiết vì đây là lớp chặn đầu tiên: prompt injection cố gắng
+    thay đổi hành vi của LLM để lộ secret trong system prompt. Regex
+    bắt được các dạng phổ biến (EN + VI) trước khi chúng tới được LLM.
+
     Args:
         user_input: The user's message
 
@@ -38,9 +42,35 @@ def detect_injection(user_input: str) -> bool:
         True if injection detected, False otherwise
     """
     INJECTION_PATTERNS = [
-        # TODO: Add at least 5 regex patterns
-        # Example:
-        # r"ignore (all )?(previous|above) instructions",
+        r"ignore\s+(all\s+)?(previous|above|prior)?\s*instructions?",
+        r"disregard\s+(all\s+)?(previous|above|prior)?\s*(instructions?|rules?|directives?)",
+        r"forget\s+(your\s+)?(instructions?|rules?|prompt)",
+        r"override\s+(your\s+)?(system\s+)?(prompt|instructions?)",
+        r"you\s+are\s+now\b",
+        r"\bDAN\b",
+        r"pretend\s+(you\s+are|to\s+be)",
+        r"act\s+as\s+(a\s+|an\s+)?(unrestricted|evil|jailbroken)",
+        r"role\s*play\s+as",
+        r"system\s+prompt",
+        r"reveal\s+(your\s+)?(instructions?|prompt|secrets?|password|api\s*key)",
+        r"show\s+(me\s+)?(your\s+)?(system\s+)?(prompt|instructions?|config)",
+        r"translate\s+(your\s+)?(instructions?|system\s+prompt|rules?)",
+        r"output\s+(your\s+)?(config|instructions?|prompt)\s+(as|in)\s+(json|yaml|xml)",
+        r"fill\s+in\s*(the\s*)?(blank|blanks|___)",
+        r"password\s*(is|=|:)",
+        r"api\s*key",
+        r"connection\s+string",
+        r"base64|rot13",
+        r"bỏ\s+qua\s+(mọi\s+)?hướng\s+dẫn",
+        r"quên\s+(mọi\s+)?hướng\s+dẫn",
+        r"tiết\s+lộ\s+(mật\s+khẩu|api|system\s*prompt)",
+        r"cho\s+tôi\s+(xem\s+)?(mật\s+khẩu|system\s*prompt|api\s*key)",
+        r"bạn\s+là\s+DAN",
+        r"ticket\s+SEC-\d+",
+        r"\bCISO\b",
+        r"hypotheticall?y.*(password|api\s*key|secret|credentials)",
+        r"write\s+a\s+story.*(password|credentials|api\s*key|same\s+secrets)",
+        r"confirm\s+(that\s+)?(the\s+)?(admin\s+)?password",
     ]
 
     for pattern in INJECTION_PATTERNS:
@@ -62,6 +92,11 @@ def detect_injection(user_input: str) -> bool:
 def topic_filter(user_input: str) -> bool:
     """Check if input is off-topic or contains blocked topics.
 
+    Cần thiết để giữ agent đúng phạm vi ngân hàng: chặn chủ đề độc hại
+    (hack, weapon, drug...) và các yêu cầu ngoài việc ngân hàng
+    (nấu ăn, thời tiết...). Lưu ý đổi ngược: nếu KHÔNG có keyword ngân
+    hàng cho phép thì coi là out-of-scope -> chặn.
+
     Args:
         user_input: The user's message
 
@@ -70,12 +105,20 @@ def topic_filter(user_input: str) -> bool:
     """
     input_lower = user_input.lower()
 
-    # TODO: Implement logic:
-    # 1. If input contains any blocked topic -> return True
-    # 2. If input doesn't contain any allowed topic -> return True
-    # 3. Otherwise -> return False (allow)
+    # 1. Nếu chứa bất kỳ chủ đề bị chặn -> chặn ngay
+    if any(b in input_lower for b in BLOCKED_TOPICS):
+        return True
 
-    pass  # Replace with your implementation
+    # 2. Nếu có keyword ngân hàng cho phép -> cho qua
+    if any(a in input_lower for a in ALLOWED_TOPICS):
+        return False
+
+    # 3. Input rỗng / quá ngắn -> không phải câu hỏi hợp lệ
+    if not input_lower.strip():
+        return True
+
+    # 4. Không thuộc topic ngân hàng -> chặn (off-topic)
+    return True
 
 
 # ============================================================
@@ -128,14 +171,22 @@ class InputGuardrailPlugin(base_plugin.BasePlugin):
         self.total_count += 1
         text = self._extract_text(user_message)
 
-        # TODO: Implement logic:
-        # 1. Call detect_injection(text)
-        #    - If True: increment blocked_count, return self._block_response("...")
-        # 2. Call topic_filter(text)
-        #    - If True: increment blocked_count, return self._block_response("...")
-        # 3. If both are False: return None (let message through)
+        # 1. Chặn prompt injection trước (nguy cơ lộ secret cao nhất)
+        if detect_injection(text):
+            self.blocked_count += 1
+            return self._block_response(
+                "I cannot process that request. I only help with VinBank banking questions."
+            )
 
-        pass  # Replace with your implementation
+        # 2. Chặn ngoài chủ đề / chủ đề nguy hiểm
+        if topic_filter(text):
+            self.blocked_count += 1
+            return self._block_response(
+                "I'm a VinBank assistant and can only help with banking-related questions."
+            )
+
+        # 3. An toàn -> cho qua (None)
+        return None
 
 
 # ============================================================

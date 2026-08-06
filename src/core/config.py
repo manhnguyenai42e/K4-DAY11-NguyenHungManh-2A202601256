@@ -3,6 +3,9 @@ Lab 11 — Configuration & API Key Setup
 """
 import os
 
+# MSSV của sinh viên — dùng cho results.json / attack_results.json
+STUDENT_ID = "2A202601256"
+
 
 def setup_api_key():
     """Load Google API key from environment or prompt."""

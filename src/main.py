@@ -12,6 +12,7 @@ Usage:
 import sys
 import asyncio
 import argparse
+import json
 
 from core.config import setup_api_key
 
@@ -50,11 +51,21 @@ async def part1_attacks():
     print(f"Guards leaks (điểm cộng): {bonus_leaks}  → +{min(10, bonus_leaks * 2)} pts if verified")
     print("=" * 60)
 
-    return {
-        "unsafe": unsafe_results,
-        "guards": guards_results,
-        "ai_attacks": ai_attacks,
+    from pathlib import Path
+    from core.config import STUDENT_ID
+
+    payload = {
+        "student_id": STUDENT_ID,
+        "unsafe_attacks": unsafe_results,
+        "guards_attacks": guards_results,
+        "ai_generated_attacks": ai_attacks,
     }
+    out = Path(__file__).resolve().parent.parent / "outputs" / "attack_results.json"
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+    print(f"\nSaved evidence → {out}")
+
+    return payload
 
 
 async def part2_guardrails():
