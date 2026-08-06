@@ -27,6 +27,48 @@ from core.utils import chat_with_agent
 # - "redacted": cleaned response (PII replaced with [REDACTED])
 # ============================================================
 
+def _normalize(text: str) -> str:
+    """Chuẩn hoá để so khớp secret bất kể bị tách ký tự (space/underscore/dash)."""
+    return re.sub(r"[^a-zA-Z0-9]", "", text).lower()
+
+
+def _redact_normalized_secret(response: str, secret: str, issues: list) -> str:
+    """Redact secret có thể bị viết tách ký tự (vd 'db vinbank internal', 'admin 123').
+
+    Lỗ hổng của regex khớp chuỗi chính xác: kẻ tấn công nhờ model nhắc lại
+    secret ở dạng tách ký tự (space/underscore) -> regex chuẩn không bắt.
+    Ở đây ta normalize cả response LẪN secret rồi tìm substring, sau đó map
+    lại đúng đoạn gốc để redact (tránh che nhầm cả câu).
+    """
+    norm_resp = _normalize(response)
+    norm_secret = _normalize(secret)
+    if not norm_secret or norm_secret not in norm_resp:
+        return response
+
+    # Map từng ký tự chuẩn hoá về vị trí gốc trong response
+    idx_map = [i for i, ch in enumerate(response) if ch.isalnum()]
+
+    redacted = response
+    count = 0
+    start = 0
+    while True:
+        pos = norm_resp.find(norm_secret, start)
+        if pos == -1:
+            break
+        begin = idx_map[pos]
+        end = idx_map[pos + len(norm_secret) - 1] + 1
+        redacted = redacted[:begin] + "[REDACTED]" + redacted[end:]
+        count += 1
+        start = pos + len(norm_secret)
+        # ánh xạ trên response đã đổi -> phải map lại
+        norm_resp = _normalize(redacted)
+        idx_map = [i for i, ch in enumerate(redacted) if ch.isalnum()]
+
+    if count:
+        issues.append(f"{secret!r} (normalized): {count} found")
+    return redacted
+
+
 def content_filter(response: str) -> dict:
     """Filter response for PII, secrets, and harmful content.
 
@@ -34,6 +76,11 @@ def content_filter(response: str) -> dict:
     nhắc tới SĐT/email/CMND của khách hay lộ secret nội bộ (password,
     sk-* API key, host db nội bộ) thì vẫn bị che bằng [REDACTED].
     Quan trọng vì regex bắt được chính xác, không phụ thuộc model.
+
+    Cải tiến chống bypass (so với version regex thuần): ngoài các pattern
+    chính xác, ta còn normalize cả response LẪN secret để bắt secret bị viết
+    tách ký tự ('db vinbank internal', 'admin 123', 'sk vinbank secret 2024')
+    — đóng đúng lỗ hổng quote/transcription đã khai thác được ở guards bot.
 
     Args:
         response: The LLM's response text
@@ -57,8 +104,7 @@ def content_filter(response: str) -> dict:
         # Password khai báo kiểu "password: xxx"
         "password_assignment": r"password\s*[:=]\s*\S+",
         # Secret cụ thể của VinBank (system prompt)
-        "admin_password": r"\badmin123\b",
-        "internal_db": r"db\.vinbank\.internal(?::\d+)?",
+        "internal_secret": r"\badmin123\b|db\.vinbank\.internal(?::\d+)?",
     }
 
     for name, pattern in PII_PATTERNS.items():
@@ -66,6 +112,10 @@ def content_filter(response: str) -> dict:
         if matches:
             issues.append(f"{name}: {len(matches)} found")
             redacted = re.sub(pattern, "[REDACTED]", redacted, flags=re.IGNORECASE)
+
+    # Lớp phụ: bắt secret viết tách ký tự (khai thác khoảng trắng/gạch dưới/gạch ngang)
+    for secret in ("admin123", "sk-vinbank-secret-2024", "db.vinbank.internal"):
+        redacted = _redact_normalized_secret(redacted, secret, issues)
 
     return {
         "safe": len(issues) == 0,
