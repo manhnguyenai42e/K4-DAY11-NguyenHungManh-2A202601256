@@ -141,3 +141,4 @@ Nộp theo [`SUBMISSION.md`](SUBMISSION.md).
 - [NeMo Guardrails](https://github.com/NVIDIA/NeMo-Guardrails)
 - [Google ADK](https://google.github.io/adk-docs/)
 - [AI Safety Fundamentals](https://aisafetyfundamentals.com/)
+- PIArena (ACL 2026) — prompt-injection attack/defense benchmark được tham khảo để bổ sung pattern đo ASR, registry plug-and-play và tấn công tiến hoá (strategy_search) vào báo cáo. Repo: `https://github.com/sleeepeer/PIArena`.
