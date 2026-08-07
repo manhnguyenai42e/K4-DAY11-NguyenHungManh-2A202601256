@@ -161,23 +161,53 @@ async def part5_assignment_suite():
     import os
 
     print("\n" + "=" * 60)
-    print("PART 5: Assignment suite → outputs/*.json")
+    print("PART 5: Assignment suite -> outputs/*.json")
     print("=" * 60)
 
-    from assignment.pipeline import (
-        build_production_plugins,
-        build_observability,
-        run_assignment_suite,
-    )
+    from assignment.pipeline import DefensePipeline, run_assignment_suite
 
-    student_id = os.environ.get("STUDENT_ID", "").strip() or "SE00000"
+    student_id = os.environ.get("STUDENT_ID", "").strip() or "2A202601256"
     try:
-        plugins = build_production_plugins()
-        audit, monitor = build_observability()
-        pipeline = {"plugins": plugins, "audit": audit, "monitor": monitor}
+        pipeline = DefensePipeline()
         result = await run_assignment_suite(pipeline, student_id=student_id)
         print("Suite finished.")
         print(f"Wrote outputs under repo outputs/ (student_id={student_id})")
+
+        # Action gateway demo: HITL router + egress allowlist làm việc CÙNG
+        # nhau trên 1 hành động high-risk thật (không chỉ unit-test riêng lẻ).
+        print("\n--- Action gateway demo (HITL + is_egress_allowed) ---")
+        no_approval = await pipeline.execute_action(
+            action_type="transfer_money",
+            destination="https://api.vinbank.example/v1/transfers",
+            payload="transfer 500000 to account 123456",
+            user_id="demo_user",
+        )
+        print(f"  1) Chưa có approval -> {no_approval['routing']} "
+              f"(executed={no_approval['executed']}, reason={no_approval['reason']})")
+
+        approved_ok = await pipeline.execute_action(
+            action_type="transfer_money",
+            destination="https://api.vinbank.example/v1/transfers",
+            payload="approved transfer amount 500000",
+            user_id="demo_user",
+            approval_id="HITL-DEMO0001",
+            reviewer_id="reviewer_demo",
+        )
+        print(f"  2) Có approval, payload sạch -> executed={approved_ok['executed']} "
+              f"({approved_ok['reason']})")
+
+        approved_but_leaky = await pipeline.execute_action(
+            action_type="transfer_money",
+            destination="https://api.vinbank.example/v1/transfers",
+            payload="admin password is admin123",
+            user_id="demo_user",
+            approval_id="HITL-DEMO0002",
+            reviewer_id="reviewer_demo",
+        )
+        print(f"  3) Có approval nhưng payload có secret -> executed={approved_but_leaky['executed']} "
+              f"({approved_but_leaky['reason']})")
+
+        pipeline.audit.export_json("outputs/audit_log.json")
         return result
     except NotImplementedError as e:
         print(

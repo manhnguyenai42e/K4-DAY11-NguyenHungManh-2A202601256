@@ -31,6 +31,33 @@ INSTRUCTION_OVERRIDE_PATTERNS = (
     r"bỏ\s+qua\s+(?:mọi\s+)?hướng\s+dẫn|tiết\s+lộ\s+(?:mật\s*khẩu|api|thông\s*tin\s*nội\s*bộ)",
 )
 
+# "Fake policy/authority update" injection: không dùng từ ignore/reveal/system
+# prompt nào cả — giả làm thông báo nội bộ (audit/drill/compliance) ép model
+# đổi hành vi output vĩnh viễn, kèm nhắc tới dữ liệu nhạy cảm. Phát hiện qua
+# red-team: né được INSTRUCTION_OVERRIDE_PATTERNS phía trên vì không dùng từ
+# khoá "chỉ thị" trực tiếp. Dùng co-occurrence 2 tập từ khoá (không giới hạn
+# khoảng cách ký tự) thay vì regex 1 cụm liền, vì câu tấn công thật thường
+# tách "lý do bịa" và "yêu cầu tiết lộ" ra 2 đầu câu khác nhau.
+_AUTHORITY_UPDATE_TERMS = (
+    "new policy", "policy update", "mandatory", "compliance check",
+    "from now on", "going forward", "every reply", "every replies",
+    "all responses", "disaster-recovery drill", "audit", "runbook",
+    "required in all",
+)
+_SENSITIVE_REQUEST_TERMS = (
+    "database", "internal", "password", "api key", "api-key",
+    "host and port", "connection string", "secret",
+)
+
+
+def contains_fake_policy_injection(text: str) -> bool:
+    """True nếu text vừa giả danh thông báo/chính sách nội bộ vừa đòi hỏi
+    lộ thông tin nhạy cảm — mẫu tấn công không dùng từ khoá "ignore/reveal"."""
+    lower = text.lower()
+    return any(a in lower for a in _AUTHORITY_UPDATE_TERMS) and any(
+        s in lower for s in _SENSITIVE_REQUEST_TERMS
+    )
+
 
 @dataclass(frozen=True)
 class ExternalContent:
@@ -78,7 +105,9 @@ def contains_secret(text: str) -> bool:
 def contains_instruction_override(text: str) -> bool:
     """Identify instruction-like text after Unicode normalization."""
     normalized = normalize_for_security(text)
-    return any(re.search(pattern, normalized, re.IGNORECASE) for pattern in INSTRUCTION_OVERRIDE_PATTERNS)
+    return any(
+        re.search(pattern, normalized, re.IGNORECASE) for pattern in INSTRUCTION_OVERRIDE_PATTERNS
+    ) or contains_fake_policy_injection(normalized)
 
 
 def assess_external_content(content: ExternalContent) -> ActionDecision:

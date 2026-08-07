@@ -38,13 +38,13 @@ export default function HitlSection() {
         {/* 3 Router decision cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
           {[
-            { title: "Tự Động Gửi (Auto-Approve)", cond: "confidence ≥ 0.90", action: "Cho phép trả về khách hàng", color: "border-[#124f8c] bg-blue-50/50 text-[#124f8c]" },
-            { title: "Hàng Đợi Review (Queue HITL)", cond: "0.70 ≤ confidence < 0.90", action: "Chuyển Chuyên viên duyệt", color: "border-amber-300 bg-amber-50/50 text-amber-800" },
-            { title: "Từ Chối & Leo Thang (Escalate)", cond: "confidence < 0.70 hoặc PII Leak", action: "Chặn & Báo cáo an ninh", color: "border-red-300 bg-red-50/50 text-red-800" },
+            { title: "Tự Động Gửi (Auto-Approve)", cond: "confidence ≥ 0.90 / An toàn", action: "Cho phép trả về khách hàng trực tiếp", color: "border-[#124f8c] bg-blue-50/50 text-[#124f8c]" },
+            { title: "Dual-Sync Telegram HITL", cond: "Giao dịch giá trị lớn (Ví dụ: Chuyển 100M VND)", action: "Gửi Ticket tới Telegram Admin Bot + Web Dashboard", color: "border-amber-300 bg-amber-50/50 text-amber-800" },
+            { title: "Chặn & Từ Chối (Block & Escalate)", cond: "Prompt Injection / Violation", action: "Chặn ngay lập tức & ghi log giám sát", color: "border-red-300 bg-red-50/50 text-red-800" },
           ].map((c, idx) => (
             <div key={idx} className={`p-3 rounded-xl border ${c.color} shadow-xs text-xs space-y-1`}>
               <div className="font-bold text-slate-900">{c.title}</div>
-              <div className="font-mono text-[10px] text-slate-600">Đăng ký: {c.cond}</div>
+              <div className="font-mono text-[10px] text-slate-600">Điều kiện: {c.cond}</div>
               <div className="text-[11px] font-medium text-slate-700">{c.action}</div>
             </div>
           ))}

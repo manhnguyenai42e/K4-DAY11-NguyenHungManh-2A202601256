@@ -150,13 +150,18 @@ class DefensePipeline:
         """Xử lý một yêu cầu qua toàn bộ lớp. Trả về dict kết quả."""
         uid = user_id or self.user_id
         self.monitor.total_requests += 1
+        # request_id sinh NGAY ĐẦU request (không phải ở _finish) để
+        # correlation ID xuyên suốt toàn bộ pipeline và latency_ms trong
+        # audit_log.json phản ánh đúng thời gian xử lý thật (rate limit ->
+        # guardrails -> LLM -> judge), không phải ~0ms.
+        rid = self.audit.record_input(user_id=uid, text=user_input)
 
         # Lớp 1: Rate Limiter (chặn spam / flood)
         blocked, wait_msg = self.rate_limiter.check_request(uid)
         if blocked:
             return self._finish(
                 uid, user_input, blocked=True, layer="rate_limiter",
-                response=wait_msg,
+                response=wait_msg, request_id=rid,
             )
 
         # Lớp 2: Input Guardrail (injection + chủ đề)
@@ -164,11 +169,13 @@ class DefensePipeline:
             return self._finish(
                 uid, user_input, blocked=True, layer="input_guardrail",
                 response="I cannot process that request. I only help with VinBank banking questions.",
+                request_id=rid,
             )
         if topic_filter(user_input):
             return self._finish(
                 uid, user_input, blocked=True, layer="input_guardrail",
                 response="I'm a VinBank assistant and can only help with banking-related questions.",
+                request_id=rid,
             )
 
         # Lớp 3: LLM trả lời (chỉ gọi nếu đã qua các lớp trên)
@@ -184,7 +191,7 @@ class DefensePipeline:
             # Secret lộ rõ -> chặn cả response (fail-closed như guards agent)
             return self._finish(
                 uid, user_input, blocked=True, layer="output_guardrail",
-                response=response,
+                response=response, request_id=rid,
             )
 
         # Lớp 5: LLM-as-Judge (đa tiêu chí)
@@ -196,32 +203,109 @@ class DefensePipeline:
                 return self._finish(
                     uid, user_input, blocked=True, layer="llm_judge",
                     response="I'm sorry, I can't provide that response. How else can I help with VinBank?",
+                    request_id=rid,
                 )
 
         # An toàn -> cho qua
-        return self._finish(uid, user_input, blocked=False, layer=None, response=response)
+        return self._finish(
+            uid, user_input, blocked=False, layer=None, response=response, request_id=rid,
+        )
 
-    def _finish(self, user_id, user_input, *, blocked, layer, response) -> dict:
-        """Ghi audit + monitoring rồi trả kết quả chuẩn."""
+    def _finish(self, user_id, user_input, *, blocked, layer, response, request_id) -> dict:
+        """Ghi audit output (input đã ghi ở đầu process()) + monitoring rồi trả kết quả chuẩn."""
         if blocked:
             self.monitor.blocked_requests += 1
         if layer == "rate_limiter":
             self.monitor.rate_limit_hits += 1
 
-        rid = self.audit.record_input(user_id=user_id, text=user_input)
         self.audit.record_output(
             user_id=user_id,
             text=response,
             blocked=blocked,
             layer=layer,
-            request_id=rid,
+            request_id=request_id,
         )
 
         return {
             "input": user_input,
             "blocked": blocked,
             "layer": layer,
+            "request_id": request_id,
             "response_preview": response[:300],
+        }
+
+    async def execute_action(
+        self,
+        *,
+        action_type: str,
+        destination: str,
+        payload: str,
+        user_id: str | None = None,
+        confidence: float = 0.5,
+        approval_id: str | None = None,
+        reviewer_id: str | None = None,
+    ) -> dict:
+        """Action gateway: nối ConfidenceRouter (HITL) với is_egress_allowed.
+
+        ``process()`` ở trên chỉ trả lời câu hỏi (Q&A) — không có side effect.
+        Đây là bước RIÊNG cho hành động thật (chuyển tiền, đổi mật khẩu...):
+        mọi HIGH_RISK_ACTIONS luôn bị ConfidenceRouter escalate, KHÔNG được
+        auto-send/auto-egress. is_egress_allowed() chỉ được gọi SAU KHI đã
+        có approval_id hợp lệ (giả lập human-in-the-loop approve) — LLM
+        không tự quyết định policy này (đúng contract §4.2/4.3).
+        """
+        import uuid
+        from hitl.hitl import ConfidenceRouter
+
+        uid = user_id or self.user_id
+        # ID rõ ràng thay vì để record_input tự sinh theo user+timestamp-ms:
+        # nhiều action liên tiếp cùng user trong cùng 1ms sẽ đụng độ request_id
+        # (đã thực nghiệm thấy 3 lệnh gọi liền nhau dùng chung 1 ID).
+        rid = self.audit.record_input(
+            user_id=uid,
+            text=f"ACTION:{action_type} -> {destination} | payload={payload[:120]}",
+            request_id=f"action-{action_type}-{uuid.uuid4().hex[:12]}",
+        )
+
+        decision = ConfidenceRouter().route("", confidence, action_type=action_type)
+
+        if decision.requires_human and not approval_id:
+            # Escalate: KHÔNG gọi is_egress_allowed, KHÔNG egress dữ liệu đi đâu cả.
+            self.monitor.blocked_requests += 1
+            self.audit.record_output(
+                user_id=uid,
+                text=f"ESCALATED ({decision.reason}) — chờ human approval trước khi egress",
+                blocked=True,
+                layer="hitl_escalate",
+                request_id=rid,
+            )
+            return {
+                "action": action_type,
+                "executed": False,
+                "routing": decision.action,
+                "reason": decision.reason,
+                "requires_human": True,
+                "request_id": rid,
+            }
+
+        # Đã có approval (hoặc action không high-risk + confidence đủ cao)
+        # -> mới tới lượt egress allowlist quyết định, không phải LLM.
+        allowed = is_egress_allowed(destination, payload)
+        self.audit.record_output(
+            user_id=uid,
+            text=f"EGRESS {'ALLOWED' if allowed else 'DENIED'} -> {destination}"
+            + (f" (approved by {reviewer_id}, {approval_id})" if approval_id else ""),
+            blocked=not allowed,
+            layer="egress_gateway",
+            request_id=rid,
+        )
+        return {
+            "action": action_type,
+            "executed": allowed,
+            "routing": decision.action,
+            "reason": "egress allowlist passed" if allowed else "blocked by is_egress_allowed",
+            "requires_human": decision.requires_human,
+            "request_id": rid,
         }
 
     async def rate_limit_test(self, sent: int = 15, *, user_id: str = "rl_user") -> dict:

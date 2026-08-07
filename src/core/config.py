@@ -77,7 +77,9 @@ def setup_api_key() -> tuple[str, str]:
         os.environ["OPENAI_API_KEY"] = openai_key.strip()
         if "OPENAI_BASE_URL" in os.environ:
             del os.environ["OPENAI_BASE_URL"]
-        model = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
+        model = os.getenv("OPENAI_MODEL", "openai:gpt-4o-mini")
+        if not model.startswith("openai:"):
+            model = f"openai:{model}"
         print(f"[API Provider - Primary] Selected OpenAI (Model: {model})")
         return "openai", model
 
@@ -86,7 +88,7 @@ def setup_api_key() -> tuple[str, str]:
     if is_valid_key(deepseek_key) and check_key_working("deepseek", deepseek_key):
         os.environ["OPENAI_API_KEY"] = deepseek_key.strip()
         os.environ["OPENAI_BASE_URL"] = "https://api.deepseek.com"
-        model = os.getenv("DEEPSEEK_MODEL", "deepseek-v4-flash")
+        model = "openai:deepseek-chat"
         print(f"[API Provider - Fallback 2] Selected DeepSeek (Model: {model})")
         return "deepseek", model
 
@@ -95,7 +97,7 @@ def setup_api_key() -> tuple[str, str]:
     if is_valid_key(openrouter_key) and check_key_working("openrouter", openrouter_key):
         os.environ["OPENAI_API_KEY"] = openrouter_key.strip()
         os.environ["OPENAI_BASE_URL"] = "https://openrouter.ai/api/v1"
-        model = os.getenv("OPENROUTER_MODEL", "google/gemini-2.5-flash")
+        model = "openai:google/gemini-2.5-flash"
         print(f"[API Provider - Fallback 3] Selected OpenRouter (Model: {model})")
         return "openrouter", model
 
@@ -112,7 +114,7 @@ def setup_api_key() -> tuple[str, str]:
     # Fallback default
     os.environ["GOOGLE_GENAI_USE_VERTEXAI"] = "0"
     print("[API Provider] Defaulting to gpt-4o-mini config.")
-    return "openai", "gpt-4o-mini"
+    return "openai", "openai:gpt-4o-mini"
 
 
 def get_active_model() -> str:
@@ -126,9 +128,10 @@ ALLOWED_TOPICS = [
     "banking", "account", "transaction", "transfer",
     "loan", "interest", "savings", "credit",
     "deposit", "withdrawal", "balance", "payment",
-    "tai khoan", "giao dich", "tiet kiem", "lai suat",
-    "chuyen tien", "the tin dung", "so du", "vay",
-    "ngan hang", "atm",
+    "tai khoan", "tài khoản", "giao dich", "giao dịch", "tiet kiem", "tiết kiệm", "lai suat", "lãi suất",
+    "chuyen tien", "chuyển tiền", "the tin dung", "thẻ tín dụng", "so du", "số dư", "vay",
+    "ngan hang", "ngân hàng", "atm", "gui tien", "gửi tiền", "nap tien", "nạp tiền", "rut tien", "rút tiền",
+    "xin chao", "xin chào", "chao", "chào", "hello", "hi", "tư vấn", "tu van", "trợ giúp", "tro giup",
 ]
 
 # Blocked topics (immediate reject)

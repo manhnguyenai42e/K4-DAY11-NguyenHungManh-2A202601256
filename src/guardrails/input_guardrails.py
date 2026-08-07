@@ -11,7 +11,7 @@ from google.adk.plugins import base_plugin
 from google.adk.agents.invocation_context import InvocationContext
 
 from core.config import ALLOWED_TOPICS, BLOCKED_TOPICS
-from agents.security_boundary import normalize_for_security
+from agents.security_boundary import normalize_for_security, contains_fake_policy_injection
 
 
 # ============================================================
@@ -85,6 +85,12 @@ def detect_injection(user_input: str) -> bool:
     for pattern in INJECTION_PATTERNS:
         if re.search(pattern, user_input, re.IGNORECASE):
             return True
+
+    # Fake policy/authority update giả danh thông báo nội bộ (audit/drill/
+    # compliance) đòi lộ dữ liệu nhạy cảm — né được các pattern "ignore/
+    # reveal/system prompt" phía trên. Xem agents/security_boundary.py.
+    if contains_fake_policy_injection(user_input):
+        return True
     return False
 
 

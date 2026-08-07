@@ -22,16 +22,16 @@ export default function AcademicHero() {
           <div className="lg:col-span-7 space-y-4">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 border border-blue-200 text-[#124f8c] text-[11px] font-bold uppercase tracking-wider">
               <span className="flex h-1.5 w-1.5 rounded-full bg-[#124f8c] animate-pulse" />
-              Guardrails · HITL · Responsible AI
+              Guardrails · HITL · Responsible AI (6 Lớp Defense-in-Depth)
             </div>
 
             <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black text-slate-900 tracking-tight leading-tight">
               Bảo Vệ Conversational AI Qua{" "}
-              <span className="text-[#124f8c]">Multi-Layer Guardrails</span> &amp; HITL
+              <span className="text-[#124f8c]">Trace 6 Lớp Guardrails</span> &amp; HITL
             </h1>
 
             <p className="text-xs sm:text-sm text-slate-600 leading-relaxed font-normal">
-              VinBank Assistant được trang bị <strong className="text-slate-900">5 lớp bảo vệ</strong> — Input Filter, Rate Limiter, Gemini LLM, Output Filter, LLM Judge/HITL. Đo <strong className="text-emerald-700">khả năng chống prompt injection &amp; bypass</strong> (chặn rò rỉ secret &amp; admin password).
+              VinBank Assistant được trang bị <strong className="text-slate-900">6 lớp bảo vệ chuyên sâu</strong> — Rate Limiter, Input Guardrail, Gemini LLM Core, Output Guardrail (Redact PII/Secret), LLM-as-Judge 4 tiêu chí, và Telegram Admin Dual-Sync HITL. Đạt <strong className="text-emerald-700">100% tỷ lệ chặn tấn công &amp; 0% chặn nhầm safe query</strong>.
             </p>
 
             <div className="flex flex-wrap items-center gap-2.5 pt-1">
@@ -39,7 +39,7 @@ export default function AcademicHero() {
                 href="/chat"
                 className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-lg font-bold text-xs text-white bg-[#124f8c] hover:bg-[#0b355f] transition-all shadow-xs"
               >
-                <span>Thử Chatbot AI (/chat)</span>
+                <span>Trải Nghiệm Live Chat (/chat)</span>
                 <ArrowRight className="w-3.5 h-3.5" />
               </a>
               <a
@@ -52,7 +52,7 @@ export default function AcademicHero() {
                 href="#architecture"
                 className="px-4 py-2.5 rounded-lg font-bold text-xs text-slate-700 bg-white border border-slate-200 hover:bg-slate-50 transition-all shadow-xs"
               >
-                <span>Kiến Trúc Pipeline</span>
+                <span>Kiến Trúc Pipeline 6 Lớp</span>
               </a>
             </div>
 
@@ -60,17 +60,17 @@ export default function AcademicHero() {
             <div className="pt-2 flex flex-wrap items-center gap-3 text-[11px] font-semibold text-slate-500">
               <div className="flex items-center gap-1">
                 <Filter className="w-3 h-3 text-[#124f8c]" />
-                <span>Google ADK · Gemini</span>
+                <span>Google ADK · GPT-4o-Mini</span>
               </div>
               <div className="w-1 h-1 rounded-full bg-slate-300" />
               <div className="flex items-center gap-1">
                 <Radio className="w-3 h-3 text-emerald-600" />
-                <span>15 Attack Vectors</span>
+                <span>Pass 13/13 Tests</span>
               </div>
               <div className="w-1 h-1 rounded-full bg-slate-300" />
               <div className="flex items-center gap-1">
                 <Users className="w-3 h-3 text-[#124f8c]" />
-                <span>3 HITL Decision Points</span>
+                <span>Telegram Bot Dual-Sync HITL</span>
               </div>
             </div>
           </div>

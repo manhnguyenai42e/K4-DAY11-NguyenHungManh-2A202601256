@@ -41,10 +41,18 @@ python -m uvicorn src.api_server:app --host 0.0.0.0 --port 14001
 cd frontend && npm run dev
 ```
 
-Truy cập `http://localhost:14000` (trang academic) hoặc `http://localhost:14000/chat` (chatbot UI + admin controls, cần `NEXT_PUBLIC_HITL_ADMIN_TOKEN` trong `frontend/.env.local` khớp `HITL_ADMIN_TOKEN` ở backend).
+Truy cập `http://localhost:14000` (trang academic) hoặc `http://localhost:14000/chat` (chatbot UI + admin controls). Copy `frontend/.env.local.example` → `frontend/.env.local`, điền `HITL_ADMIN_TOKEN` khớp với backend (biến này **không** có tiền tố `NEXT_PUBLIC_` — chỉ route handler server-side đọc được, không lộ ra bundle client).
 
 Deploy Vercel (tuỳ chọn): repo có `vercel.json` ở root trỏ build vào `frontend/`. Import repo, giữ Root Directory `./` (Vercel tự đọc `vercel.json`) hoặc chọn `frontend` theo khuyến nghị Vercel Monorepo.
 
 ### Vá bảo mật trong lớp mở rộng
-- `src/api_server.py` `/api/chat/action` trước đây không xác thực — ai biết `ticket_id` cũng tự approve/reject được. Đã thêm header `X-Admin-Token` bắt buộc khớp `HITL_ADMIN_TOKEN`.
+- `src/api_server.py` `/api/chat/action` trước đây không xác thực — ai biết `ticket_id` cũng tự approve/reject được. Đã thêm header `X-Admin-Token` bắt buộc khớp `HITL_ADMIN_TOKEN` (raise 401/503, không có fallback token nào).
 - `src/hitl/telegram_bot.py` sinh `ticket_id` từ `time.time() % 100000` — dễ đoán/liệt kê. Đã đổi sang `secrets.token_hex(4)`.
+- **Vòng vá thứ 2 (phát hiện qua security review tự động):** một chỉnh sửa cục bộ sau đó đã biến `_require_admin` thành no-op luôn `return` (kể cả token rỗng/sai — verify bằng test trực tiếp: no-token/empty/random-token đều "pass"), và hardcode token dự phòng `"vinbank_admin_secret"` lộ cả 2 phía server + `NEXT_PUBLIC_HITL_ADMIN_TOKEN` client. Đã revert về raise lỗi thật, đồng thời **đổi kiến trúc**: bỏ hẳn token khỏi bundle trình duyệt, chuyển sang Next.js Route Handler `frontend/src/app/api/hitl-action/route.ts` proxy server-side (đọc `HITL_ADMIN_TOKEN` không tiền tố `NEXT_PUBLIC_`, forward header `X-Admin-Token` tới backend). Client giờ gọi `/api/hitl-action` (same-origin), không còn secret nào trong JS gửi ra trình duyệt.
+
+### Phát hiện: rò rỉ secret qua "Chain-of-Thought" (reasoning_content) — model reasoning nhỏ
+Test thực nghiệm 15 attack (đã đa dạng hoá TODO 13) trên 2 model:
+- Gemini 3.1 Flash Lite (Guards Agent hiện tại): 3/15 leak ở câu trả lời cuối (Quote/Transcription bypass).
+- Gemma-4-E2B local (Unsloth, reasoning model): **0/15 leak ở câu trả lời cuối, nhưng 12/15 leak trong `reasoning_content`** — model viết thẳng secret ra khi "suy nghĩ" có nên tiết lộ hay không, ví dụ trích nguyên văn `db.vinbank.internal:5432` từ system prompt trong chain-of-thought dù câu trả lời cuối "sạch".
+
+Cả `src/guardrails/output_guardrails.py` (pipeline A) lẫn `src/agents/guards_agent.py::content_filter_strong` (target bonus) đều chỉ quét `content` cuối — không quét `reasoning_content`/`reasoning`. Nếu app nào hiển thị "thinking" cho user (phổ biến với UX kiểu o1/DeepSeek-R1), secret lộ thẳng dù response cuối không có gì. Đây là lớp tấn công/phòng thủ độc lập với các TODO hiện có — đáng đưa vào báo cáo mục 5.5.3 làm attack tự tìm + đề xuất lớp chặn (quét luôn mọi field phụ mà response object trả về, không chỉ `content`).

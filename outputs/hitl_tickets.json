@@ -43,5 +43,59 @@
     "status": "REJECTED",
     "response_text": "[REJECTED BY ADMIN (WEB UI)] Yêu cầu HITL-28320 đã bị Admin từ chối trên Web UI.",
     "created_at": 1786080528.3200488
+  },
+  "HITL-01D291EA": {
+    "ticket_id": "HITL-01D291EA",
+    "user_id": "chat_user",
+    "prompt": "Tôi muốn chuyển 100,000,000 VND sang tài khoản 99999999",
+    "reason": "Yêu cầu giao dịch/thao tác nhạy cảm giá trị lớn cần Admin xác thực",
+    "status": "APPROVED",
+    "response_text": "[APPROVED BY ADMIN] Yêu cầu HITL-01D291EA đã được Admin phê duyệt thành công qua Telegram!",
+    "created_at": 1786090552.834135
+  },
+  "HITL-1ECF558F": {
+    "ticket_id": "HITL-1ECF558F",
+    "user_id": "playground_user",
+    "prompt": "Chuyển tiền 100,000,000 VND",
+    "reason": "Yêu cầu giao dịch/thao tác nhạy cảm giá trị lớn cần Admin xác thực",
+    "status": "APPROVED",
+    "response_text": "[APPROVED BY ADMIN (WEB UI)] Yêu cầu HITL-1ECF558F đã được Admin phê duyệt thành công trên Web UI!",
+    "created_at": 1786090651.9392896
+  },
+  "HITL-420CDE8C": {
+    "ticket_id": "HITL-420CDE8C",
+    "user_id": "chat_user",
+    "prompt": "Tôi muốn chuyển 100,000,000 VND sang tài khoản 99999999",
+    "reason": "Yêu cầu giao dịch/thao tác nhạy cảm giá trị lớn cần Admin xác thực",
+    "status": "APPROVED",
+    "response_text": "[APPROVED BY ADMIN (WEB UI)] Yêu cầu HITL-420CDE8C đã được Admin phê duyệt thành công trên Web UI!",
+    "created_at": 1786090675.042023
+  },
+  "HITL-3D896BC1": {
+    "ticket_id": "HITL-3D896BC1",
+    "user_id": "playground_user",
+    "prompt": "Chuyển tiền 100,000,000 VND",
+    "reason": "Yêu cầu giao dịch/thao tác nhạy cảm giá trị lớn cần Admin xác thực",
+    "status": "PENDING",
+    "response_text": null,
+    "created_at": 1786090848.5699136
+  },
+  "HITL-F0BF32A2": {
+    "ticket_id": "HITL-F0BF32A2",
+    "user_id": "chat_user",
+    "prompt": "Tôi muốn chuyển 100,000,000 VND sang tài khoản 99999999",
+    "reason": "Yêu cầu giao dịch/thao tác nhạy cảm giá trị lớn cần Admin xác thực",
+    "status": "REJECTED",
+    "response_text": "[REJECTED BY ADMIN (WEB UI)] Yêu cầu HITL-F0BF32A2 đã bị Admin từ chối trên Web UI.",
+    "created_at": 1786090927.646933
+  },
+  "HITL-B10583B3": {
+    "ticket_id": "HITL-B10583B3",
+    "user_id": "chat_user",
+    "prompt": "Yêu cầu nâng hạn mức thẻ lên 50 triệu và reset password admin",
+    "reason": "Yêu cầu giao dịch/thao tác nhạy cảm giá trị lớn cần Admin xác thực",
+    "status": "APPROVED",
+    "response_text": "[APPROVED BY ADMIN (WEB UI)] Yêu cầu HITL-B10583B3 đã được Admin phê duyệt thành công trên Web UI!",
+    "created_at": 1786092972.866166
   }
 }

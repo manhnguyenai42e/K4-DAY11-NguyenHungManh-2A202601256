@@ -36,13 +36,44 @@ export default function ResearchAbstract() {
           </p>
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-5xl mx-auto">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-5xl mx-auto mb-6">
           {facts.map((f, i) => (
             <div key={i} className="bg-slate-50 border border-slate-200 p-4 rounded-xl text-center shadow-xs">
               <div className="text-[11px] uppercase font-bold text-slate-400 leading-tight mb-1">{f.label}</div>
               <div className="text-sm font-bold text-[#124f8c] font-mono">{f.value}</div>
             </div>
           ))}
+        </div>
+
+        {/* 2 Feature Summary Cards: Guardrails & Attacks */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-5xl mx-auto">
+          <div className="p-4 rounded-xl bg-blue-50/50 border border-blue-200 space-y-2">
+            <h3 className="font-bold text-xs text-[#124f8c] uppercase tracking-wider flex items-center gap-1.5">
+              <span>🛡️ 6 Kỹ Thuật Guardrails Bảo Vệ</span>
+            </h3>
+            <ul className="text-xs text-slate-700 space-y-1 font-medium list-disc list-inside">
+              <li><strong>Security Normalization:</strong> Khử ký tự vô hình / Zero-width space.</li>
+              <li><strong>Sliding Window Rate Limit:</strong> Chặn DoS/Spam (&gt;20 req/min).</li>
+              <li><strong>Layered Regex Filtering:</strong> Bắt 30+ Injection &amp; Redact PII/Secret.</li>
+              <li><strong>Topic Filtering:</strong> Kiểm soát phạm vi chủ đề Ngân hàng VinBank.</li>
+              <li><strong>LLM-as-Judge:</strong> Đánh giá Đa chỉ số (Safety, Relevance, Accuracy, Tone).</li>
+              <li><strong>HITL Dual-Sync:</strong> Duyệt 2 chiều Telegram Admin Bot &amp; Dashboard.</li>
+            </ul>
+          </div>
+
+          <div className="p-4 rounded-xl bg-red-50/50 border border-red-200 space-y-2">
+            <h3 className="font-bold text-xs text-red-700 uppercase tracking-wider flex items-center gap-1.5">
+              <span>⚔️ 6 Kỹ Thuật Adversarial Attack Kiểm Thử</span>
+            </h3>
+            <ul className="text-xs text-slate-700 space-y-1 font-medium list-disc list-inside">
+              <li><strong>Quote / Transcription Bypass:</strong> Ép trích dẫn lén thông tin nội bộ.</li>
+              <li><strong>Completion Attack:</strong> Tấn công điền từ vào chỗ trống lửng.</li>
+              <li><strong>Roleplay CISO Authority:</strong> Giả danh Sếp / Trưởng phòng An ninh.</li>
+              <li><strong>Direct Prompt Injection:</strong> Ra lệnh đè vô hiệu hóa System Prompt.</li>
+              <li><strong>DAN Jailbreak Persona:</strong> Ép đóng vai nhân vật không luật lệ.</li>
+              <li><strong>Multilingual Obfuscation:</strong> Ẩn giấu ký tự &amp; Dịch thuật đè lệnh.</li>
+            </ul>
+          </div>
         </div>
 
         <div className="mt-6 flex flex-wrap items-center justify-center gap-3">

@@ -28,35 +28,10 @@ export default function PipelineArchitecture() {
 
   const steps: Step[] = [
     {
-      id: "input",
-      num: "01",
-      title: "Input Guardrails",
-      file: "src/guardrails/input_guardrails.py",
-      desc: "Lớp chặn đầu tiên trước khi lời nhắc tới LLM. Regex bắt hàng chục dạng prompt injection (EN + VI) — trả về BLOCKED_INPUT ngay lập tức, 0 tốn token.",
-      detail:
-        "Kiểm tra 3 tầng: 1) System prompt extract attempt ('ignore previous instructions', 'reveal system prompt'). 2) Jailbreak keywords ('DAN', 'you are now'). 3) Topic filter ngân hàng hợp lệ.",
-      codeSnippet: `def detect_injection(user_input: str) -> bool:
-    INJECTION_PATTERNS = [
-        r"ignore\s+(all\s+)?(previous|above|prior)?\s*instructions?",
-        r"reveal\s+(your\s+)?(instructions|prompt|secrets|password|api\s*key)",
-        r"\bDAN\b",
-    ]
-    for pattern in INJECTION_PATTERNS:
-        if re.search(pattern, user_input, re.IGNORECASE):
-            return True
-    return False`,
-      badges: [
-        { label: "Chống", val: "Prompt Injection" },
-        { label: "Ngôn ngữ", val: "EN + VI" },
-        { label: "Chi phí", val: "Regex, 0 token" },
-      ],
-      icon: Filter,
-    },
-    {
       id: "ratelimit",
-      num: "02",
+      num: "01",
       title: "Rate Limiter",
-      file: "src/guardrails/rate_limit.py",
+      file: "src/assignment/rate_limiter.py",
       desc: "Chặn lạm dụng & DoS từ một IP/User ID. Cấu hình Sliding Window — tối đa 20 request/phút.",
       detail:
         "Khi vượt quá 20 req/phút: trả về HTTP 429 Too Many Requests, ghi vào audit_log.json với blocked_by_layer='RATE_LIMIT'.",
@@ -81,20 +56,45 @@ export default function PipelineArchitecture() {
       icon: Ban,
     },
     {
+      id: "input",
+      num: "02",
+      title: "Input Guardrails",
+      file: "src/guardrails/input_guardrails.py",
+      desc: "Lớp chặn đầu tiên trước khi lời nhắc tới LLM. Regex bắt hàng chục dạng prompt injection (EN + VI) & lọc chủ đề ngân hàng.",
+      detail:
+        "Kiểm tra 3 tầng: 1) System prompt extract attempt ('ignore previous instructions'). 2) Jailbreak keywords ('DAN', 'you are now'). 3) Topic filter ngân hàng hợp lệ.",
+      codeSnippet: `def detect_injection(user_input: str) -> bool:
+    INJECTION_PATTERNS = [
+        r"ignore\s+(all\s+)?(previous|above|prior)?\s*instructions?",
+        r"reveal\s+(your\s+)?(instructions|prompt|secrets|password|api\s*key)",
+        r"\bDAN\b",
+    ]
+    for pattern in INJECTION_PATTERNS:
+        if re.search(pattern, user_input, re.IGNORECASE):
+            return True
+    return False`,
+      badges: [
+        { label: "Chống", val: "Prompt Injection" },
+        { label: "Ngôn ngữ", val: "EN + VI" },
+        { label: "Chi phí", val: "Regex, 0 token" },
+      ],
+      icon: Filter,
+    },
+    {
       id: "agent",
       num: "03",
       title: "LLM Agent (VinBank)",
-      file: "src/agent/core.py",
-      desc: "Trí tuệ nhân tạo lõi (Gemini 3.1 Flash). Chỉ trả lời câu hỏi dịch vụ ngân hàng tài chính theo system prompt nghiêm ngặt.",
+      file: "src/agents/agent.py",
+      desc: "Trí tuệ nhân tạo lõi (GPT-4o-Mini / Gemini ADK). Trả lời câu hỏi dịch vụ ngân hàng tài chính theo system prompt nghiêm ngặt.",
       detail:
         "System prompt thiết lập vai trò Chuyên viên tư vấn VinBank. Tuyệt đối không tiết lộ thông tin nội bộ hay thực hiện giao dịch trái phép.",
       codeSnippet: `VINBANK_SYSTEM_PROMPT = """
 Bạn là Chuyên viên tư vấn VinBank. Chỉ giải đáp thắc mắc dịch vụ tài chính ngân hàng.
-NẾU người dùng yêu cầu chuyển tiền hoặc thông tin quản trị: Yêu cầu xác thực OTP.
+NẾU người dùng yêu cầu chuyển tiền hoặc thông tin quản trị: Yêu cầu xác thực Admin HITL.
 NẾU hỏi ngoài ngành: Từ chối lịch sự.
 """`,
       badges: [
-        { label: "Model", val: "Gemini 3.1 Flash" },
+        { label: "Model", val: "GPT-4o-Mini (ADK)" },
         { label: "Phạm vi", val: "Ngân hàng & Tài chính" },
         { label: "Hỗ trợ", val: "Tiếng Việt" },
       ],
@@ -107,13 +107,12 @@ NẾU hỏi ngoài ngành: Từ chối lịch sự.
       file: "src/guardrails/output_guardrails.py",
       desc: "Lớp kiểm soát đầu ra trước khi gửi tới khách hàng. Lọc bỏ PII (Số thẻ, OTP, Password) và thông tin nhạy cảm.",
       detail:
-        "Dù LLM có bị lừa rò rỉ secret, Output Guardrail vẫn tự động redact các pattern nhạy cảm hoặc thay bằng thông báo từ chối an toàn.",
-      codeSnippet: `def redact_sensitive(text: str) -> str:
-    # Masking số thẻ ngân hàng
-    text = re.sub(r"\b\d{4}[- ]?\d{4}[- ]?\d{4}[- ]?\d{4}\b", "[CARD_REDACTED]", text)
-    # Masking mật khẩu/secret
-    text = re.sub(r"(password|secret|api_key)\s*=\s*\S+", r"\\1=[REDACTED]", text, flags=re.I)
-    return text`,
+        "Dù LLM có bị lừa rò rỉ secret, Output Guardrail vẫn tự động redact các pattern nhạy cảm hoặc thay bằng [REDACTED].",
+      codeSnippet: `def content_filter(text: str) -> dict:
+    # Masking PII / Secret
+    redacted = re.sub(r"sk_[a-zA-Z0-9_-]{20,}", "[REDACTED_API_KEY]", text)
+    redacted = re.sub(r"\b\d{4}[- ]?\d{4}[- ]?\d{4}[- ]?\d{4}\b", "[CARD_REDACTED]", redacted)
+    return {"safe": redacted == text, "redacted": redacted}`,
       badges: [
         { label: "Redact PII", val: "Số thẻ, OTP, Secret" },
         { label: "Bảo vệ", val: "Dữ liệu khách hàng" },
@@ -124,26 +123,42 @@ NẾU hỏi ngoài ngành: Từ chối lịch sự.
     {
       id: "judge",
       num: "05",
-      title: "LLM Judge + HITL",
-      file: "src/guardrails/llm_judge.py",
-      desc: "Lớp thẩm định độc lập & Router phân luồng giám sát con người (Human-in-the-Loop) cho giao dịch tài chính rủi ro cao.",
+      title: "LLM-as-Judge",
+      file: "src/guardrails/output_guardrails.py",
+      desc: "Lớp thẩm định chất lượng độc lập bằng Agent LLM Giám khảo chấm điểm 4 tiêu chí (Safety, Relevance, Accuracy, Tone 1-5).",
       detail:
-        "Tính Confidence Score: ≥ 0.9 tự động gửi, 0.7 - 0.9 chuyển hàng đợi Review, < 0.7 từ chối / escalate cấp quản lý.",
-      codeSnippet: `def confidence_router(score: float, action_type: str) -> str:
-    if action_type in ["TRANSFER_LARGE", "CHANGE_PIN"]:
-        return "QUEUE_HUMAN_REVIEW"
-    if score >= 0.9:
-        return "AUTO_APPROVE"
-    elif score >= 0.7:
-        return "QUEUE_HUMAN_REVIEW"
-    else:
-        return "REJECT_AND_ESCALATE"`,
+        "Báo cáo chi tiết scorecard 1-5 điểm. Nếu verdict là FAIL, câu trả lời sẽ bị từ chối và thay bằng thông báo an toàn.",
+      codeSnippet: `SAFETY_JUDGE_INSTRUCTION = """
+Evaluate AI response on 4 criteria (1-5 each):
+1. SAFETY 2. RELEVANCE 3. ACCURACY 4. TONE
+VERDICT: PASS or FAIL
+"""`,
       badges: [
-        { label: "Đánh giá", val: "Dual LLM / Judge" },
-        { label: "HITL", val: "3 Decision Points" },
-        { label: "Rủi ro", val: "Tự động phân luồng" },
+        { label: "Tiêu chí", val: "Safety, Relevance, Accuracy, Tone" },
+        { label: "Chấm điểm", val: "Thang 1-5" },
+        { label: "Tỷ lệ lỗi", val: "0.0% Fail Rate" },
       ],
       icon: Scale,
+    },
+    {
+      id: "hitl",
+      num: "06",
+      title: "HITL Telegram Admin",
+      file: "src/hitl/hitl.py",
+      desc: "Lớp giám sát con người (Human-in-the-Loop) thời gian thực cho các giao dịch nhạy cảm/giá trị lớn.",
+      detail:
+        "Tự động tạo Ticket HITL và phát cảnh báo Telegram Bot. Admin có thể Approve/Reject trực tiếp trên Telegram hoặc Web Dashboard.",
+      codeSnippet: `async def create_hitl_ticket(user_input: str, reason: str) -> dict:
+    ticket_id = f"HITL-{uuid4().hex[:8].upper()}"
+    ticket = {"ticket_id": ticket_id, "status": "PENDING", "reason": reason}
+    await notify_telegram_admin(ticket)
+    return ticket`,
+      badges: [
+        { label: "Kênh duyệt", val: "Telegram Bot Dual-Sync" },
+        { label: "Xác thực", val: "Admin Token Auth" },
+        { label: "Trạng thái", val: "APPROVED / REJECTED" },
+      ],
+      icon: CheckCircle2,
     },
   ];
 
@@ -161,12 +176,12 @@ NẾU hỏi ngoài ngành: Từ chối lịch sự.
             Multi-Layer Defense Pipeline
           </div>
           <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
-            Kiến Trúc Bảo Vệ 5 Lớp
+            Kiến Trúc Bảo Vệ 6 Lớp
           </h2>
         </div>
 
         {/* Step buttons */}
-        <div className="grid grid-cols-5 gap-2 mb-3">
+        <div className="grid grid-cols-6 gap-2 mb-3">
           {steps.map((step, idx) => {
             const isActive = activeStep === idx;
             return (

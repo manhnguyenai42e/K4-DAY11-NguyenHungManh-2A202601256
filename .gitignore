@@ -225,3 +225,6 @@ out/
 next-env.d.ts
 *.tsbuildinfo
 frontend/.env.local
+
+# Local-only quick-reference (đã từng dính API key thật, không đưa vào repo)
+HUONG_DAN_CHAY.md
