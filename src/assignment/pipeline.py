@@ -374,8 +374,11 @@ async def run_assignment_suite(pipeline: DefensePipeline, student_id: str) -> di
         "judge_sample": judge_sample,
     }
 
-    # Ghi file nộp bài
-    out = Path("outputs")
+    # Ghi file nộp bài — absolute path theo vị trí file này, KHÔNG phải relative
+    # theo CWD: chạy `cd src && python main.py --part 5` (đúng như assignment11.md
+    # hướng dẫn) sẽ có CWD=src/, và Path("outputs") tương đối sẽ ra src/outputs/
+    # thay vì outputs/ ở gốc repo — sai vị trí SUBMISSION.md yêu cầu.
+    out = Path(__file__).resolve().parents[2] / "outputs"
     out.mkdir(parents=True, exist_ok=True)
     (out / "results.json").write_text(
         json.dumps(results, ensure_ascii=False, indent=2), encoding="utf-8"

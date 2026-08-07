@@ -3,8 +3,8 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import Link from "next/link";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:14001/api/chat";
-const STATUS_URL = "http://localhost:14001/api/chat/status";
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "/api/chat";
+const STATUS_URL = "/api/chat/status";
 // Admin action đi qua route handler server-side /api/hitl-action — KHÔNG gọi
 // thẳng backend từ client và KHÔNG có token nào trong bundle trình duyệt.
 const HITL_ACTION_URL = "/api/hitl-action";

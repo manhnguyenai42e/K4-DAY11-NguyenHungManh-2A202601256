@@ -2,7 +2,8 @@
 Lab 11 — Configuration & Multi-Provider API Key Setup.
 
 Priority Order:
-1. OpenAI (gpt-4o-mini) — Primary Default
+0. Local LLM (Unsloth/llama.cpp OpenAI-compatible server) — Primary Default
+1. OpenAI (gpt-4o-mini)
 2. DeepSeek (deepseek-v4-flash)
 3. OpenRouter
 4. Gemini
@@ -53,6 +54,13 @@ def check_key_working(provider: str, key: str) -> bool:
             url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={key.strip()}"
             headers = {"Content-Type": "application/json"}
             body = {"contents": [{"parts": [{"text": "hi"}]}]}
+        elif provider == "local":
+            base_url = os.getenv("LOCAL_LLM_BASE_URL", "http://127.0.0.1:8888/v1").rstrip("/")
+            url = f"{base_url}/models"
+            headers = {"Authorization": f"Bearer {key.strip()}"} if key else {}
+            req = urllib.request.Request(url, headers=headers, method="GET")
+            with urllib.request.urlopen(req, timeout=2) as resp:
+                return resp.status == 200
         else:
             return False
 
@@ -70,6 +78,17 @@ def setup_api_key() -> tuple[str, str]:
     """
     # Force reload .env
     load_dotenv(ROOT / ".env", override=True)
+
+    # Priority 0: Local LLM (Unsloth / llama.cpp OpenAI-compatible server)
+    local_base_url = os.getenv("LOCAL_LLM_BASE_URL", "http://127.0.0.1:8888/v1")
+    local_key = os.getenv("LOCAL_LLM_API_KEY", "")
+    local_model_id = os.getenv("LOCAL_LLM_MODEL", "")
+    if os.getenv("USE_LOCAL_LLM", "1") != "0" and local_model_id and check_key_working("local", local_key):
+        os.environ["OPENAI_API_KEY"] = local_key.strip() or "local-no-auth"
+        os.environ["OPENAI_BASE_URL"] = local_base_url
+        model = f"openai:{local_model_id}"
+        print(f"[API Provider - Primary] Selected Local LLM (Model: {model} @ {local_base_url})")
+        return "local", model
 
     # Priority 1: OpenAI (gpt-4o-mini)
     openai_key = os.getenv("OPENAI_API_KEY")

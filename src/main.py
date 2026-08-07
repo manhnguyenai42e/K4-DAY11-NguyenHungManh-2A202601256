@@ -207,7 +207,9 @@ async def part5_assignment_suite():
         print(f"  3) Có approval nhưng payload có secret -> executed={approved_but_leaky['executed']} "
               f"({approved_but_leaky['reason']})")
 
-        pipeline.audit.export_json("outputs/audit_log.json")
+        from pathlib import Path
+        repo_root = Path(__file__).resolve().parent.parent
+        pipeline.audit.export_json(str(repo_root / "outputs" / "audit_log.json"))
         return result
     except NotImplementedError as e:
         print(

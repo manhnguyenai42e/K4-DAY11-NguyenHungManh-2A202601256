@@ -184,10 +184,14 @@ REASON: <one sentence>
 """
 
 # Judge agent riêng: dùng LLM thông minh độc lập để thẩm định chất lượng
+# max_output_tokens cao hơn mặc định: model reasoning (vd local qua Unsloth)
+# tốn token cho "thinking" trước khi in ra SAFETY/RELEVANCE/... — thấp quá sẽ
+# bị cắt giữa chừng và parse_judge_response() không tìm được field nào.
 safety_judge_agent = llm_agent.LlmAgent(
     model=get_active_model(),
     name="safety_judge",
     instruction=SAFETY_JUDGE_INSTRUCTION,
+    generate_content_config=types.GenerateContentConfig(max_output_tokens=1500),
 )
 judge_runner = None
 

@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import Link from "next/link";
 
-const API_URL = "http://localhost:14001/api/chat";
+const API_URL = "/api/chat";
 
 const EXAMPLE_PROMPTS = [
   { label: "Lãi suất tiết kiệm", prompt: "What is the current savings interest rate?", type: "safe" },
