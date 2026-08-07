@@ -1,0 +1,47 @@
+{
+  "HITL-64816": {
+    "ticket_id": "HITL-64816",
+    "user_id": "playground_user",
+    "prompt": "Test HITL Notification from VinBank Assistant",
+    "reason": "Kiểm thử nút bấm Telegram Admin",
+    "status": "REJECTED",
+    "response_text": "[REJECTED BY ADMIN] Yêu cầu HITL-64816 đã bị Admin từ chối do không đáp ứng tiêu chuẩn an toàn.",
+    "created_at": 1786075100
+  },
+  "HITL-77394": {
+    "ticket_id": "HITL-77394",
+    "user_id": "playground_user",
+    "prompt": "Test HITL Notification from VinBank Assistant",
+    "reason": "Kiem thu nut bam Telegram Admin",
+    "status": "APPROVED",
+    "response_text": "[APPROVED BY ADMIN] Yêu cầu HITL-77394 đã được Admin phê duyệt thành công qua Telegram!",
+    "created_at": 1786075150
+  },
+  "HITL-93881": {
+    "ticket_id": "HITL-93881",
+    "user_id": "playground_user",
+    "prompt": "Yêu cầu chuyển 100,000,000 VND sang TK 888888888 (Thử nghiệm Reply Telegram Admin)",
+    "reason": "Chuyển tiền hạn mức lớn (> 50M VND)",
+    "status": "CUSTOM",
+    "response_text": "[ADMIN PHẢN HỒI]: ok em nhé",
+    "created_at": 1786079193.881665
+  },
+  "HITL-66236": {
+    "ticket_id": "HITL-66236",
+    "user_id": "chat_user",
+    "prompt": "Tôi muốn chuyển 100,000,000 VND sang tài khoản 99999999",
+    "reason": "Yêu cầu giao dịch/thao tác nhạy cảm giá trị lớn cần Admin xác thực",
+    "status": "APPROVED",
+    "response_text": "[APPROVED BY ADMIN (WEB UI)] Yêu cầu HITL-66236 đã được Admin phê duyệt thành công trên Web UI!",
+    "created_at": 1786080466.2428608
+  },
+  "HITL-28320": {
+    "ticket_id": "HITL-28320",
+    "user_id": "chat_user",
+    "prompt": "Yêu cầu nâng hạn mức thẻ lên 50 triệu và reset password admin",
+    "reason": "Yêu cầu giao dịch/thao tác nhạy cảm giá trị lớn cần Admin xác thực",
+    "status": "REJECTED",
+    "response_text": "[REJECTED BY ADMIN (WEB UI)] Yêu cầu HITL-28320 đã bị Admin từ chối trên Web UI.",
+    "created_at": 1786080528.3200488
+  }
+}

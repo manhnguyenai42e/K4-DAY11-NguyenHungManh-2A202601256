@@ -13,6 +13,7 @@ from google.adk import runners
 from google.adk.plugins import base_plugin
 
 from core.utils import chat_with_agent
+from core.config import get_active_model
 
 
 # ============================================================
@@ -152,10 +153,9 @@ VERDICT: PASS or FAIL
 REASON: <one sentence>
 """
 
-# Judge agent riêng: dùng LLM khác (không trùng agent phục vụ để tránh
-# thiên vị / cùng lỗ hổng). Model dùng flash-lite để rẻ và nhanh.
+# Judge agent riêng: dùng LLM thông minh độc lập để thẩm định chất lượng
 safety_judge_agent = llm_agent.LlmAgent(
-    model="gemini-3.1-flash-lite",
+    model=get_active_model(),
     name="safety_judge",
     instruction=SAFETY_JUDGE_INSTRUCTION,
 )

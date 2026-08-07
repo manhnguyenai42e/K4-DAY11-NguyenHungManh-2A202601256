@@ -112,8 +112,9 @@ class DefensePipeline:
         self.audit = AuditLogPlugin()
         self.monitor = MonitoringAlert()
         self.user_id = user_id
-        # live mode nếu có API key; offline nếu không (fallback)
-        self.live = bool(os.environ.get("GOOGLE_API_KEY"))
+        from core.config import setup_api_key
+        provider, model_name = setup_api_key()
+        self.live = True
         self.use_llm_judge = use_llm_judge and self.live
         _init_judge()
         self.output_plugin = OutputGuardrailPlugin(use_llm_judge=self.use_llm_judge)
