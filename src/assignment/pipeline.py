@@ -15,7 +15,11 @@ from __future__ import annotations
 
 import json
 import os
+import re
 from pathlib import Path
+from urllib.parse import urlparse
+
+from agents.security_boundary import TRUSTED_EGRESS_HOSTS, normalize_for_security, contains_secret
 
 from assignment.rate_limiter import RateLimitPlugin
 from assignment.audit_log import AuditLogPlugin
@@ -68,7 +72,26 @@ def is_egress_allowed(destination: str, payload: str) -> bool:
     contain a password, API key, database host, phone number or email address.
     Do not let the LLM's prose decide this policy.
     """
-    raise NotImplementedError("Implement is_egress_allowed")
+    destination_url = urlparse(destination)
+    if destination_url.scheme != "https" or destination_url.hostname not in TRUSTED_EGRESS_HOSTS:
+        return False
+
+    if contains_secret(payload):
+        return False
+
+    normalized_payload = normalize_for_security(payload)
+    SENSITIVE_PAYLOAD_PATTERNS = (
+        r"\bpassword\b|mật\s*khẩu",
+        r"\bapi[_\s-]?key\b",
+        r"\b[\w-]+\.(?:internal|local)\b(?::\d+)?",       # DB/internal host
+        r"\b\d{1,3}(?:\.\d{1,3}){3}(?::\d+)?\b",           # IP[:port] host
+        r"\b(?:\+?84|0)\d{9,10}\b",                        # SĐT VN
+        r"[\w.+-]+@[\w-]+\.[\w.-]+",                       # email
+    )
+    if any(re.search(p, normalized_payload, re.IGNORECASE) for p in SENSITIVE_PAYLOAD_PATTERNS):
+        return False
+
+    return True
 
 
 def build_production_plugins(

@@ -1,6 +1,6 @@
 # Day 11 — Controlled Agent Security (2026)
 
-Dự án nghiên cứu & triển khai hệ thống an toàn thông tin nhiều lớp cho AI Chatbot Ngân Hàng VinBank, mở rộng thêm **Web Dashboard (Next.js)** và **Human-in-the-Loop qua Telegram Bot** trên nền pipeline chuẩn của đề bài.
+Làm sao để ứng dụng agent an toàn hơn?
 
 **Hình thức:** bài tập **cá nhân** (1 người / 1 MSSV).
 
@@ -15,10 +15,8 @@ Dự án nghiên cứu & triển khai hệ thống an toàn thông tin nhiều l
 | Họ tên | Nguyễn Hùng Mạnh |
 | MSSV | `2A202601256` |
 | Framework | Google ADK (plugins) + pure-Python pipeline wrapper |
-| Mô hình chính (pipeline chấm điểm) | Gemini (`GOOGLE_API_KEY`) |
-| Mở rộng (dashboard/demo) | OpenAI `gpt-4o-mini` + fallback DeepSeek / OpenRouter |
-| Web Frontend (mở rộng, tuỳ chọn) | `http://localhost:14000` |
-| Backend API (mở rộng, tuỳ chọn) | `http://localhost:14001` |
+
+> Repo có thêm một lớp demo trực quan tuỳ chọn (Web Dashboard Next.js + HITL qua Telegram Bot), không thuộc rubric chấm điểm. Hướng dẫn chạy: [`docs/JOURNAL.md`](docs/JOURNAL.md#2026-08-07---claude-code).
 
 ---
 
@@ -40,7 +38,7 @@ pip install -r requirements.txt
 
 Mỗi lần mở terminal mới: `.\.venv\Scripts\Activate.ps1` rồi mới chạy code.
 
-Nếu PowerShell báo không cho chạy script:
+Nếu PowerShell báo không cho chạy script:  
 `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned`
 
 PowerShell (nếu chưa load `.env`):
@@ -105,7 +103,7 @@ Slide đầy đủ + timer trên lớp: [`Slide_Lab_Day11.html`](Slide_Lab_Day11
 
 ## Tình huống
 
-Chatbot ngân hàng **VinBank**. Agent "unsafe" cố ý chứa mật khẩu / API key trong system prompt.
+Chatbot ngân hàng **VinBank**. Agent “unsafe” cố ý chứa mật khẩu / API key trong system prompt.
 
 ```
 Câu hỏi người dùng
@@ -174,85 +172,23 @@ Nộp theo [`SUBMISSION.md`](SUBMISSION.md).
 
 ---
 
-## Mở rộng: Web Dashboard & HITL qua Telegram (ngoài rubric bắt buộc)
-
-Ngoài pipeline chuẩn theo `assignment11.md` (dùng để chấm điểm qua `python main.py --part N`), repo có thêm một lớp demo trực quan:
-
-- Backend FastAPI (`src/api_server.py`, port `14001`) — expose pipeline + poll Telegram cho HITL 2 chiều
-- Frontend Next.js (`frontend/`, port `14000`) — dashboard academic + chatbot UI trực tiếp
-- HITL qua Telegram Bot (`src/hitl/telegram_bot.py`) — admin approve/reject ngay trên Telegram, đồng bộ 2 chiều với Web UI
-
-```
-Người dùng đặt câu hỏi
-     │
-     ├──► [Lớp 1] Rate Limiter
-     ├──► [Lớp 2] Input Guardrail (Prompt Injection / DAN)
-     ├──► [Lớp 3] Model Layer (Gemini, fallback OpenAI/DeepSeek/OpenRouter cho dashboard)
-     ├──► [Lớp 4] Output Guardrail (Redact PII & Secret)
-     └──► [Lớp 5] LLM-as-Judge & HITL Admin Telegram Approval
-             ├── Sync 1: Telegram Bot Alert (Inline Approve/Reject/Reply)
-             └── Sync 2: Web UI Admin Controls (Approve/Reject trên Web)
-```
-
-### Chạy demo mở rộng (tuỳ chọn, không bắt buộc cho chấm điểm)
-
-Thêm các key sau vào `.env` nếu muốn chạy dashboard/Telegram HITL (không cần cho `python main.py --part N`):
-
-```env
-OPENAI_API_KEY=sk-proj-...
-DEEPSEEK_API_KEY=sk-...
-OPENROUTER_API_KEY=sk-or-v1-...
-TELE_BOT_TOKEN=<telegram-bot-token-của-bạn>
-TELE_BOT_ID=<telegram-chat-id-của-bạn>
-```
-
-> **Không commit token thật vào `.env`** — chỉ dùng file `.env` local (đã có trong `.gitignore`).
-
-```powershell
-# Cài dependency frontend
-cd frontend
-npm install
-cd ..
-
-# Terminal 1 — Backend FastAPI (poll Telegram HITL nền)
-python -m uvicorn src.api_server:app --host 0.0.0.0 --port 14001
-
-# Terminal 2 — Frontend Next.js
-cd frontend
-npm run dev
-```
-
-Truy cập `http://localhost:14000` (trang academic) hoặc `http://localhost:14000/chat` (chatbot UI + admin controls).
-
-### Deploy Vercel (tuỳ chọn)
-
-Repo có `vercel.json` ở root trỏ build vào `frontend/`. Import repo vào Vercel:
-- **Cách 1:** giữ Root Directory `./` — Vercel tự đọc `vercel.json` và build Next.js từ `frontend/`.
-- **Cách 2 (theo khuyến nghị Vercel Monorepo):** chọn Root Directory là `frontend`.
-
----
-
 ## Cấu trúc repo
 
 ```
-├── assignment11.md                     ← Đề bài duy nhất
-├── SUBMISSION.md                       ← Quy định nộp
+├── assignment11.md                    ← Đề bài duy nhất
+├── SUBMISSION.md                      ← Quy định nộp
 ├── data/pii_hallucination_samples.json ← PII + ground_truth đối chiếu hallucination
 ├── src/
-│   ├── assignment/                     ← Hạng mục A (Phòng thủ)
-│   ├── attacks/                        ← Hạng mục B (Tấn công)
-│   ├── agents/security_boundary.py     ← Reference provenance / action boundary
-│   ├── agents/guards_agent.py          ← Guards Agent (mục tiêu bonus)
-│   ├── guardrails/ testing/ hitl/      ← Module hỗ trợ phòng thủ
-│   ├── api_server.py                   ← (mở rộng) FastAPI backend cho dashboard
-│   ├── hitl/telegram_bot.py            ← (mở rộng) Telegram Bot HITL dual-sync
+│   ├── assignment/                    ← Hạng mục A (Phòng thủ) — starters
+│   ├── attacks/                       ← Hạng mục B (Tấn công)
+│   ├── agents/security_boundary.py    ← Reference provenance / action boundary
+│   ├── agents/guards_agent.py         ← Guards Agent (mục tiêu bonus)
+│   ├── guardrails/ testing/ hitl/     ← Module hỗ trợ phòng thủ
 │   └── main.py
-├── frontend/                           ← (mở rộng) Next.js dashboard + chatbot UI
 ├── notebooks/lab11_guardrails_hitl.ipynb
 ├── schemas/results.schema.json
 ├── scripts/grade.py
 ├── tests/
-├── vercel.json                         ← (mở rộng) cấu hình deploy Vercel
 ├── Slide_Lab_Day11.html
 └── .env.example
 ```

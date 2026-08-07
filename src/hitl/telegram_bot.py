@@ -8,6 +8,7 @@ import asyncio
 import json
 import logging
 import os
+import secrets
 import time
 import urllib.request
 import urllib.parse
@@ -51,7 +52,9 @@ def _save_tickets(tickets: Dict[str, Dict[str, Any]]):
 
 def create_hitl_ticket(prompt_text: str, user_id: str = "playground_user", reason: str = "Giao dịch giá trị lớn (> 50M VND)") -> str:
     """Tạo ticket HITL mới, lưu file và gửi Telegram Notification."""
-    ticket_id = f"HITL-{int(time.time() * 1000) % 100000:04d}"
+    # secrets.token_hex (không phải timestamp) để ticket_id không thể đoán/liệt kê được —
+    # tránh attacker tự "approve" ticket của mình khi biết endpoint action.
+    ticket_id = f"HITL-{secrets.token_hex(4).upper()}"
     
     tickets = _load_tickets()
     tickets[ticket_id] = {

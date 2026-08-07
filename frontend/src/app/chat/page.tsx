@@ -5,6 +5,8 @@ import Link from "next/link";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:14001/api/chat";
 const STATUS_URL = "http://localhost:14001/api/chat/status";
+// Phải khớp HITL_ADMIN_TOKEN trong .env của backend — chặn ai cũng tự approve/reject ticket.
+const ADMIN_TOKEN = process.env.NEXT_PUBLIC_HITL_ADMIN_TOKEN || "";
 
 const SUGGESTIONS = [
   { label: "Lãi suất tiết kiệm VinBank", prompt: "What is the current savings interest rate?", type: "safe" },
@@ -462,7 +464,7 @@ export default function ChatPage() {
                                     try {
                                       const res = await fetch("http://localhost:14001/api/chat/action", {
                                         method: "POST",
-                                        headers: { "Content-Type": "application/json" },
+                                        headers: { "Content-Type": "application/json", "X-Admin-Token": ADMIN_TOKEN },
                                         body: JSON.stringify({ ticket_id: msg.ticket_id, action: "APPROVED" }),
                                       });
                                       if (res.ok) {
@@ -495,7 +497,7 @@ export default function ChatPage() {
                                     try {
                                       const res = await fetch("http://localhost:14001/api/chat/action", {
                                         method: "POST",
-                                        headers: { "Content-Type": "application/json" },
+                                        headers: { "Content-Type": "application/json", "X-Admin-Token": ADMIN_TOKEN },
                                         body: JSON.stringify({ ticket_id: msg.ticket_id, action: "REJECTED" }),
                                       });
                                       if (res.ok) {

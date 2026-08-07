@@ -11,6 +11,7 @@ from google.adk.plugins import base_plugin
 from google.adk.agents.invocation_context import InvocationContext
 
 from core.config import ALLOWED_TOPICS, BLOCKED_TOPICS
+from agents.security_boundary import normalize_for_security
 
 
 # ============================================================
@@ -45,6 +46,10 @@ def detect_injection(user_input: str) -> bool:
     Returns:
         True if injection detected, False otherwise
     """
+    # Canonicalize trước: NFKC + xoá zero-width chars (​...) — attacker
+    # hay chèn ký tự vô hình giữa từ khoá ("Ignore​ all...") để né regex.
+    user_input = normalize_for_security(user_input)
+
     INJECTION_PATTERNS = [
         r"ignore\s+(all\s+)?(previous|above|prior)?\s*instructions?",
         r"disregard\s+(all\s+)?(previous|above|prior)?\s*(instructions?|rules?|directives?)",

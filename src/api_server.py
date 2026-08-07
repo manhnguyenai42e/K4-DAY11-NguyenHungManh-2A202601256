@@ -16,13 +16,30 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "src"))
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, Header, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 
 # Load .env
 from dotenv import load_dotenv
 load_dotenv(ROOT / ".env")
+
+HITL_ADMIN_TOKEN = os.getenv("HITL_ADMIN_TOKEN", "").strip()
+
+
+def _require_admin(x_admin_token: str | None) -> None:
+    """Chặn /api/chat/action nếu thiếu/sai admin token.
+
+    Không có bước này, bất kỳ ai biết ticket_id đều tự approve/reject được
+    yêu cầu HITL của chính mình — vô hiệu hoá toàn bộ mục đích human review.
+    """
+    if not HITL_ADMIN_TOKEN:
+        raise HTTPException(
+            status_code=503,
+            detail="HITL_ADMIN_TOKEN chưa được cấu hình trong .env — admin action bị khoá.",
+        )
+    if not x_admin_token or x_admin_token != HITL_ADMIN_TOKEN:
+        raise HTTPException(status_code=401, detail="Missing or invalid admin token")
 
 from core.config import setup_api_key
 from assignment.pipeline import DefensePipeline
@@ -161,8 +178,15 @@ class TicketActionRequest(BaseModel):
 
 
 @app.post("/api/chat/action")
-async def process_ticket_action(req: TicketActionRequest):
-    """Endpoint cho Web UI Admin thực hiện Approve / Reject / Custom reply và đồng bộ sang Telegram."""
+async def process_ticket_action(
+    req: TicketActionRequest, x_admin_token: str | None = Header(default=None)
+):
+    """Endpoint cho Web UI Admin thực hiện Approve / Reject / Custom reply và đồng bộ sang Telegram.
+
+    Yêu cầu header ``X-Admin-Token`` khớp ``HITL_ADMIN_TOKEN`` trong .env —
+    đây là hành động high-risk (tự phê duyệt giao dịch), không cho phép ẩn danh.
+    """
+    _require_admin(x_admin_token)
     ticket = set_hitl_ticket_decision(req.ticket_id, req.action, req.response_text)
     if not ticket:
         raise HTTPException(status_code=404, detail="Ticket not found")
