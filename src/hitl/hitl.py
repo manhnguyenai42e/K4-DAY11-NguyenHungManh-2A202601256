@@ -1,13 +1,13 @@
 """
 Lab 11 — Part 4: Human-in-the-Loop Design
-  TODO 12: Confidence Router
-  TODO 13: Design 3 HITL decision points
+  TODO 11: Confidence Router
+  TODO 12: Design 3 HITL decision points
 """
 from dataclasses import dataclass
 
 
 # ============================================================
-# TODO 12: Implement ConfidenceRouter
+# TODO 11: Implement ConfidenceRouter
 #
 # Route agent responses based on confidence scores:
 #   - HIGH (>= 0.9): Auto-send to user
@@ -102,7 +102,7 @@ class ConfidenceRouter:
 
 
 # ============================================================
-# TODO 13: Design 3 HITL decision points
+# TODO 12: Design 3 HITL decision points + a review lifecycle
 #
 # For each decision point, define:
 # - trigger: What condition activates this HITL check?
@@ -110,6 +110,8 @@ class ConfidenceRouter:
 #   human-as-tiebreaker)
 # - context_needed: What info does the human reviewer need?
 # - example: A concrete scenario
+# - approval_path: What approve/reject/timeout decision is recorded?
+# - audit_fields: Which correlation ID, intent and proposed action/diff are logged?
 #
 # Think about real banking scenarios where human judgment is critical.
 # ============================================================
@@ -122,6 +124,8 @@ hitl_decision_points = [
         "hitl_model": "human-in-the-loop (bắt buộc xác nhận trước khi thực hiện)",
         "context_needed": "Số tiền, tài khoản nguồn/đích, lịch sử giao dịch, kết quả kiểm tra rủi ro (fraud score)",
         "example": "Khách yêu cầu chuyển 200 triệu VND đến tài khoản lạ. Agent tạm dừng, nhân viên gọi điện xác minh danh tính và mục đích trước khi duyệt.",
+        "approval_path": "approve: agent gọi is_egress_allowed rồi thực thi chuyển tiền; reject: agent trả lời từ chối kèm lý do cho user; timeout (không phản hồi trong SLA): tự động reject và escalate lên supervisor, không auto-send.",
+        "audit_fields": "correlation_id (request_id xuyên suốt input->output->action), intent=\"transfer_money\", proposed_action/diff (số tiền, tài khoản nguồn/đích trước-sau), reviewer_id, decision, decided_at, timeout_at.",
     },
     {
         "id": 2,
@@ -130,6 +134,8 @@ hitl_decision_points = [
         "hitl_model": "human-as-tiebreaker (agent đề xuất, người duyệt quyết định cuối)",
         "context_needed": "Lý do yêu cầu, các giao dịch bất thường gần đây, xác thực danh tính, mức độ khẩn cấp",
         "example": "Khách báo mất thẻ lúc 2h sáng. Agent nhận diện giao dịch lạ, đề xuất khoá thẻ; nhân viên trực duyệt khoá ngay và hẹn làm lại thẻ.",
+        "approval_path": "approve: thực thi khoá thẻ/tài khoản ngay; reject: agent giữ nguyên trạng thái, ghi log lý do từ chối; timeout: mặc định escalate ưu tiên cao (fail closed) vì đây là high-risk action, không tự khoá cũng không tự bỏ qua.",
+        "audit_fields": "correlation_id, intent=\"close_account\"/\"lock_card\", diff (trạng thái thẻ/tài khoản trước-sau), reviewer_id, decision, decided_at, escalation_reason nếu timeout.",
     },
     {
         "id": 3,
@@ -138,6 +144,8 @@ hitl_decision_points = [
         "hitl_model": "human-on-the-loop (agent tự xử lý nhưng người giám sát kiểm tra mẫu / cảnh báo)",
         "context_needed": "Thông tin cũ/mới, phương thức xác thực, nhật ký đăng nhập, cảnh báo bảo mật từ hệ thống",
         "example": "Khách đổi SĐT liên hệ. Agent cập nhật sau khi OTP xác thực, nhưng hệ thống giám sát ghi log và người quản trị duyệt mẫu cuối ngày.",
+        "approval_path": "approve (post-hoc sample review): thay đổi giữ nguyên hiệu lực; reject: revert lại giá trị cũ + báo user; timeout (không ai review trong window giám sát): thay đổi vẫn có hiệu lực nhưng được gắn cờ pending_review để audit sau — không chặn trải nghiệm nhưng vẫn truy vết được.",
+        "audit_fields": "correlation_id, intent=\"update_personal_info\"/\"change_password\", diff (giá trị cũ/mới), auth_method (OTP...), reviewer_id (nếu có), decision, flagged_at.",
     },
 ]
 

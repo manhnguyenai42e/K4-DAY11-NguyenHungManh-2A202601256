@@ -1,8 +1,8 @@
 """
 Lab 11 — Part 2A: Input Guardrails
-  TODO 3: Injection detection (regex)
-  TODO 4: Topic filter
-  TODO 5: Input Guardrail Plugin (ADK)
+  TODO 1: Injection detection (normalization + layered signals)
+  TODO 2: Topic filter
+  TODO 3: Input Guardrail Plugin (ADK)
 """
 import re
 
@@ -14,18 +14,22 @@ from core.config import ALLOWED_TOPICS, BLOCKED_TOPICS
 
 
 # ============================================================
-# TODO 3: Implement detect_injection()
+# TODO 1: Implement detect_injection()
 #
-# Write regex patterns to detect prompt injection.
+# Canonicalize Unicode/invisible spacing, then detect prompt injection.
 # The function takes user_input (str) and returns True if injection is detected.
 #
-# Suggested patterns:
+# Required cases:
 # - "ignore (all )?(previous|above) instructions"
 # - "you are now"
 # - "system prompt"
 # - "reveal your (instructions|prompt)"
 # - "pretend you are"
 # - "act as (a |an )?unrestricted"
+# Also handle an instruction embedded in an untrusted email/RAG document, e.g.
+# ``Ignore\u200b all previous instructions``. Do not block a benign request to
+# summarize an external bank-transfer email just because it is external data.
+# Regex is one signal, not the whole security boundary.
 # ============================================================
 
 def detect_injection(user_input: str) -> bool:
@@ -80,7 +84,7 @@ def detect_injection(user_input: str) -> bool:
 
 
 # ============================================================
-# TODO 4: Implement topic_filter()
+# TODO 2: Implement topic_filter()
 #
 # Check if user_input belongs to allowed topics.
 # The VinBank agent should only answer about: banking, account,
@@ -122,7 +126,7 @@ def topic_filter(user_input: str) -> bool:
 
 
 # ============================================================
-# TODO 5: Implement InputGuardrailPlugin
+# TODO 3: Implement InputGuardrailPlugin
 #
 # This plugin blocks bad input BEFORE it reaches the LLM.
 # Fill in the on_user_message_callback method.

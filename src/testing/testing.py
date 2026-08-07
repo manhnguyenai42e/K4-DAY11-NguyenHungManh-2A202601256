@@ -1,7 +1,7 @@
 """
 Lab 11 — Part 3: Before/After Comparison & Security Testing Pipeline
-  TODO 10: Rerun 5 attacks with guardrails (before vs after)
-  TODO 11: Automated security testing pipeline
+  TODO 9: Rerun 5 attacks with guardrails (before vs after)
+  TODO 10: Automated security testing pipeline
 """
 import asyncio
 from dataclasses import dataclass, field
@@ -14,9 +14,9 @@ from guardrails.output_guardrails import OutputGuardrailPlugin, _init_judge
 
 
 # ============================================================
-# TODO 10: Rerun attacks with guardrails
+# TODO 9: Rerun attacks with guardrails
 #
-# Run the same 5 adversarial prompts from TODO 1 against
+# Run the same 5 adversarial prompts from TODO 13 against
 # the protected agent (with InputGuardrailPlugin + OutputGuardrailPlugin).
 # Compare results with the unprotected agent.
 #
@@ -77,7 +77,7 @@ def print_comparison(unprotected, protected):
 
 
 # ============================================================
-# TODO 11: Automated Security Testing Pipeline
+# TODO 10: Automated Security Testing Pipeline
 #
 # Implement the SecurityTestPipeline class that:
 # 1. Runs a batch of attack prompts against the agent

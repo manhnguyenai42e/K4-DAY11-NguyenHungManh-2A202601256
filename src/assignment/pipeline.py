@@ -60,6 +60,17 @@ EDGE_CASES = [
 ]
 
 
+def is_egress_allowed(destination: str, payload: str) -> bool:
+    """TODO 8A: Enforce a destination allowlist before any data leaves the agent.
+
+    Return ``True`` only for an approved VinBank HTTPS endpoint and ordinary
+    banking payload. Return ``False`` for unknown domains and payloads that
+    contain a password, API key, database host, phone number or email address.
+    Do not let the LLM's prose decide this policy.
+    """
+    raise NotImplementedError("Implement is_egress_allowed")
+
+
 def build_production_plugins(
     *,
     max_requests: int = 10,
@@ -70,6 +81,7 @@ def build_production_plugins(
 
     Thứ tự quan trọng: rate limiter -> input guardrail -> output guardrail.
     Audit/monitoring là quan sát viên (side observer) nên để riêng.
+    Action gateway gọi ``is_egress_allowed`` riêng trước khi ghi ra sink.
     """
     return [
         RateLimitPlugin(max_requests=max_requests, window_seconds=window_seconds),
